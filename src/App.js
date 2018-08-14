@@ -62,19 +62,23 @@ class App extends Component {
       ? currentExpandedRows.filter(id => id !== rowId)
       : currentExpandedRows.concat(rowId);
 
-    const prevData = [...this.state.data];
-    const newData = [...this.state.data];
-    const expandedData = this.state.treeData.filter(
-      it => it.domaine_id === rowId
-    );
-    prevData.forEach((val, i) => {
-      if (val.id === rowId) {
-        newData.splice(i + 1, 0, ...expandedData);
-      }
-    });
-    this.setState({
-      data: newData
-    });
+    // const prevData = [...this.state.data];
+    // const newData = [...this.state.data];
+    // const expandedData = this.state.treeData.filter(
+    //   it => it.domaine_id === rowId
+    // );
+    // prevData.forEach((val, i) => {
+    //   if (val.id === rowId) {
+    //     if (!prevData.includes(expandedData[0])) {
+    //       newData.splice(i + 1, 0, ...expandedData);
+    //     } else {
+    //       newData.splice(i + 1, expandedData.length);
+    //     }
+    //   }
+    // });
+    // this.setState({
+    //   data: newData
+    // });
 
     this.setState({ expandedRows: newExpandedRows });
   }
@@ -83,6 +87,7 @@ class App extends Component {
     const clickCallback = () => this.handleRowClick(item.id);
     const itemRows = [
       <tr onClick={clickCallback} key={item.id + item.ref}>
+        <td>{item.id}</td>
         <td>{item.ref}</td>
         <td>{item.description}</td>
         <td>{item.cycle_id}</td>
@@ -90,35 +95,70 @@ class App extends Component {
     ];
 
     if (this.state.expandedRows.includes(item.id)) {
-      itemRows.push(
-        <tr key={item.id + item.ref}>
-          <td>{item.ref}</td>
-          <td>{item.description}</td>
-          <td>{item.cycle_id}</td>
-        </tr>
-      );
+      DOMAINES.filter(d => d.cycle_id === item.cycle_id && d.sous_domaine_id === item.id).forEach(d => {
+        const clickSousDomaineCallback = () => this.handleRowClick(d.id);
+        itemRows.push(
+          <tr onClick={clickSousDomaineCallback} key={d.id + d.ref}>
+            <td>{d.id}</td>
+            <td>{d.ref}</td>
+            <td>{d.description}</td>
+            <td>{d.cycle_id}</td>
+          </tr>
+        );
+
+        if (this.state.expandedRows.includes(d.id)) {
+          COMPETENCES.filter(ct => ct.cycle_id === d.cycle_id && ct.domaine_id === d.id).forEach(ct => {
+            itemRows.push(
+              <tr key={ct.id + ct.ref}>
+                <td>{ct.id}</td>
+                <td>{ct.ref}</td>
+                <td>{ct.description}</td>
+                <td>{ct.cycle_id}</td>
+              </tr>
+            );
+          });
+        }
+      });
+
+      COMPETENCES.filter(ct => ct.cycle_id === item.cycle_id && ct.domaine_id === item.id).forEach(ct => {
+        itemRows.push(
+          <tr key={ct.id + ct.ref}>
+            <td>{ct.id}</td>
+            <td>{ct.ref}</td>
+            <td>{ct.description}</td>
+            <td>{ct.cycle_id}</td>
+          </tr>
+        );
+      });
     }
 
     return itemRows;
   }
 
   render() {
+    console.log(this.state.expandedRows)
+    let allRowItems = [];
+    this.state.data.forEach(item => {
+      const itemPerRow = this.renderItem(item);
+      allRowItems = allRowItems.concat(itemPerRow);
+    });
+
     const data = this.state.data;
     return (
-      <div className="container">
-        <Table striped bordered condensed hover>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Ref</th>
-              <th>Description</th>
-              <th>Cycle_id</th>
-              <th>Domaine/Sous-Domaine ID</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map(d => {
+      <Table striped bordered condensed hover>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Ref</th>
+            <th>Description</th>
+            <th>Cycle_id</th>
+            <th>Domaine/Sous-Domaine ID</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {allRowItems}
+          {/* {allRowItems.map(d => {
               const domaineID =
                 d.domaine_id !== undefined ? d.domaine_id : d.sous_domaine_id;
               const key = d.id + d.ref;
@@ -141,10 +181,9 @@ class App extends Component {
                   </td>
                 </tr>
               );
-            })}
-          </tbody>
-        </Table>
-      </div>
+            })} */}
+        </tbody>
+      </Table>
     );
   }
 }
