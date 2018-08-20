@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
+import { hot } from 'react-hot-loader';
 import './App.css';
-import { DOMAINES, COMPETENCES, CYCLES } from './fake_data';
-import { Table, ButtonGroup, Button } from 'react-bootstrap';
+import { DOMAINES, COMPETENCES } from './fake_data';
+import { DragSource } from 'react-dnd';
 
 class App extends Component {
   state = {
@@ -54,6 +55,24 @@ class App extends Component {
     return treeData;
   }
 
+  handleUpdate = obj => {
+    if (obj.hasOwnProperty('sous_domaine_id')) {
+      if (obj.sous_domaine_id !== undefined) {
+        console.log('[Sous-Domaine] updated: ', obj);
+      } else {
+        console.log('[Domaine] updated: ', obj);
+      }
+    } else if (obj.hasOwnProperty('domaine_id')) {
+      console.log('[Competence] updated: ', obj);
+    } else {
+      console.log('[Domaine] updated: ', obj);
+    }
+  };
+
+  handleDelete = obj => {
+    console.log('obj deleted: ', obj);
+  };
+
   handleRowClick(rowId) {
     const currentExpandedRows = this.state.expandedRows;
     const isRowCurrentlyExpanded = currentExpandedRows.includes(rowId);
@@ -62,71 +81,97 @@ class App extends Component {
       ? currentExpandedRows.filter(id => id !== rowId)
       : currentExpandedRows.concat(rowId);
 
-    // const prevData = [...this.state.data];
-    // const newData = [...this.state.data];
-    // const expandedData = this.state.treeData.filter(
-    //   it => it.domaine_id === rowId
-    // );
-    // prevData.forEach((val, i) => {
-    //   if (val.id === rowId) {
-    //     if (!prevData.includes(expandedData[0])) {
-    //       newData.splice(i + 1, 0, ...expandedData);
-    //     } else {
-    //       newData.splice(i + 1, expandedData.length);
-    //     }
-    //   }
-    // });
-    // this.setState({
-    //   data: newData
-    // });
-
     this.setState({ expandedRows: newExpandedRows });
   }
 
   renderItem(item) {
+    const buttonName = this.state.expandedRows.includes(item.id) ? '-' : '+';
+    const actionsButton = (
+      <div>
+        <button onClick={() => this.handleUpdate(item)}>Modifier</button>
+        <button onClick={() => this.handleDelete(item)}>Supprimer</button>
+      </div>
+    );
     const clickCallback = () => this.handleRowClick(item.id);
     const itemRows = [
-      <tr onClick={clickCallback} key={item.id + item.ref}>
+      <tr key={item.id + item.ref}>
+        <td>
+          <button onClick={clickCallback}>{buttonName}</button>
+        </td>
         <td>{item.id}</td>
         <td>{item.ref}</td>
         <td>{item.description}</td>
         <td>{item.cycle_id}</td>
+        <td>{actionsButton}</td>
       </tr>
     ];
 
     if (this.state.expandedRows.includes(item.id)) {
-      DOMAINES.filter(d => d.cycle_id === item.cycle_id && d.sous_domaine_id === item.id).forEach(d => {
+      DOMAINES.filter(
+        d => d.cycle_id === item.cycle_id && d.sous_domaine_id === item.id
+      ).forEach(d => {
         const clickSousDomaineCallback = () => this.handleRowClick(d.id);
+        const actionsButton = (
+          <div>
+            <button onClick={() => this.handleUpdate(d)}>Modifier</button>
+            <button onClick={() => this.handleDelete(d)}>Supprimer</button>
+          </div>
+        );
+        const buttonName = this.state.expandedRows.includes(d.id) ? '-' : '+';
         itemRows.push(
-          <tr onClick={clickSousDomaineCallback} key={d.id + d.ref}>
+          <tr key={d.id + d.ref}>
+            <td>
+              <button onClick={clickSousDomaineCallback}>{buttonName}</button>
+            </td>
             <td>{d.id}</td>
             <td>{d.ref}</td>
             <td>{d.description}</td>
             <td>{d.cycle_id}</td>
+            <td>{actionsButton}</td>
           </tr>
         );
 
         if (this.state.expandedRows.includes(d.id)) {
-          COMPETENCES.filter(ct => ct.cycle_id === d.cycle_id && ct.domaine_id === d.id).forEach(ct => {
+          COMPETENCES.filter(
+            ct => ct.cycle_id === d.cycle_id && ct.domaine_id === d.id
+          ).forEach(ct => {
+            const actionsButton = (
+              <div>
+                <button onClick={() => this.handleUpdate(ct)}>Modifier</button>
+                <button onClick={() => this.handleDelete(ct)}>Supprimer</button>
+              </div>
+            );
             itemRows.push(
               <tr key={ct.id + ct.ref}>
+                <td />
                 <td>{ct.id}</td>
                 <td>{ct.ref}</td>
                 <td>{ct.description}</td>
                 <td>{ct.cycle_id}</td>
+                <td>{actionsButton}</td>
               </tr>
             );
           });
         }
       });
 
-      COMPETENCES.filter(ct => ct.cycle_id === item.cycle_id && ct.domaine_id === item.id).forEach(ct => {
+      COMPETENCES.filter(
+        ct => ct.cycle_id === item.cycle_id && ct.domaine_id === item.id
+      ).forEach(ct => {
+        const actionsButton = (
+          <div>
+            <button onClick={() => this.handleUpdate(ct)}>Modifier</button>
+            <button onClick={() => this.handleDelete(ct)}>Supprimer</button>
+          </div>
+        );
         itemRows.push(
           <tr key={ct.id + ct.ref}>
+            <td />
             <td>{ct.id}</td>
             <td>{ct.ref}</td>
             <td>{ct.description}</td>
             <td>{ct.cycle_id}</td>
+            <td>{actionsButton}</td>
           </tr>
         );
       });
@@ -136,56 +181,29 @@ class App extends Component {
   }
 
   render() {
-    console.log(this.state.expandedRows)
+    console.log(this.state.expandedRows);
     let allRowItems = [];
     this.state.data.forEach(item => {
       const itemPerRow = this.renderItem(item);
       allRowItems = allRowItems.concat(itemPerRow);
     });
 
-    const data = this.state.data;
     return (
-      <Table striped bordered condensed hover>
+      <table className="table table-bordered table-hover">
         <thead>
           <tr>
+            <th>#</th>
             <th>ID</th>
             <th>Ref</th>
             <th>Description</th>
             <th>Cycle_id</th>
-            <th>Domaine/Sous-Domaine ID</th>
             <th>Actions</th>
           </tr>
         </thead>
-        <tbody>
-          {allRowItems}
-          {/* {allRowItems.map(d => {
-              const domaineID =
-                d.domaine_id !== undefined ? d.domaine_id : d.sous_domaine_id;
-              const key = d.id + d.ref;
-              const cycle =
-                d.cycle_id === CYCLES[0].id
-                  ? CYCLES[0].literal
-                  : CYCLES[1].literal;
-              return (
-                <tr onClick={() => this.handleRowClick(d.id)} key={key}>
-                  <td>{d.id}</td>
-                  <td>{d.ref}</td>
-                  <td>{d.description}</td>
-                  <td>{cycle}</td>
-                  <td>{domaineID}</td>
-                  <td>
-                    <ButtonGroup>
-                      <Button>Modifier</Button>
-                      <Button>Supprimer</Button>
-                    </ButtonGroup>
-                  </td>
-                </tr>
-              );
-            })} */}
-        </tbody>
-      </Table>
+        <tbody>{allRowItems}</tbody>
+      </table>
     );
   }
 }
 
-export default App;
+export default hot(module)(App);
